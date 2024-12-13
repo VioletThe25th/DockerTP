@@ -1,6 +1,11 @@
 ## Docker Swarm
 
 ---
+### Initialisation Docker swarm
+```bash
+docker swarm init
+```
+
 ### Démarrer la stack Docker swarm
 ```bash
 docker stack deploy -c docker-compose.yml my_stack
