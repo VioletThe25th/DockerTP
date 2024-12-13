@@ -1,37 +1,50 @@
 services:
   flask-app:
+    image: flask-app:latest
     networks:
       - app-network
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: flask-app
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: "256M"
+      placement:
+        constraints:
+          - node.role == worker
     ports:
       - "5000:5000"
-    # Integrer le mode develop
     environment:
       FLASK_ENV: "development"
       DATABASE_URL: "postgresql://user:password@postgres:5432/mydb"
-    depends_on:
-      - postgres
+    secrets:
+      - postgres-password
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-    labels:
-      com.example.description: "Flask backend"
-    deploy:
-      # OPTIMISATION
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: "256M"
 
   nginx:
     image: nginx:latest
+    networks:
+      - app-network
     ports:
       - "80:80"
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: "256M"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
@@ -41,31 +54,24 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: "256M"
-    networks:
-      - app-network
-    labels:
-      service: "nginx-reverse-proxy"
 
   postgres:
     image: postgres:latest
     environment:
       POSTGRES_USER: user
-      POSTGRES_PASSWORD: postgres-password
+      POSTGRES_PASSWORD: password
       POSTGRES_DB: mydb
     volumes:
       - postgres-data:/var/lib/postgresql/data
     deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
       resources:
         limits:
           cpus: "0.5"
           memory: "512M"
-    networks:
-      - app-network
     secrets:
       - postgres-password
     healthcheck:
@@ -73,15 +79,27 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-    labels:
-      service: "postgres-db"
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    ports:
+      - "9000:9000"
+    volumes:
+      - portainer-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
 
 networks:
   app-network:
-    driver: bridge
+    driver: overlay
 
 volumes:
   postgres-data:
+  portainer-data:
 
 secrets:
   postgres-password:
