@@ -1,4 +1,6 @@
-FROM python:3.11-alpine as builder
+# Étape de construction
+
+FROM python:3.11-alpine AS builder
 
 # Variables d'optimisation
 ARG APP_DIR=/app
@@ -29,7 +31,7 @@ COPY . ${APP_DIR}
 
 # Copier les dépendances de l'étape builder
 
-COPY --from=builder /installl /usr/local
+COPY --from=builder /install /usr/local
 
 # Définir le répertoire de travail
 
