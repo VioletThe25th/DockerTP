@@ -11,7 +11,7 @@ services:
     # Integrer le mode develop
     environment:
       FLASK_ENV: "development"
-      DATABASE_URL: "postgresql://user:password@postgres:5432/mydb"
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}"
     depends_on:
       - postgres
     healthcheck:
@@ -54,9 +54,9 @@ services:
   postgres:
     image: postgres:latest
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: postgres-password
-      POSTGRES_DB: mydb
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres-password
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     deploy:
@@ -69,7 +69,7 @@ services:
     secrets:
       - postgres-password
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "user"]
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}", "${POSTGRES_DB}"]
       interval: 30s
       timeout: 10s
       retries: 5
